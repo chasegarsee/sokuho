@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { getFirebaseAuth, facebookProvider, googleProvider } from "@/lib/firebaseClient";
+import { getFirebaseAuth, googleProvider } from "@/lib/firebaseClient";
 
 const AuthContext = createContext(null);
 
@@ -29,21 +29,13 @@ export function AuthProvider({ children }) {
     await signOut(auth);
   }, []);
 
-  const linkWithFacebook = useCallback(async () => {
-    const auth = getFirebaseAuth();
-    if (!auth.currentUser) {
-      throw new Error("Must be signed in to link Facebook");
-    }
-    // Uses popup to link the Facebook provider to the existing Firebase user
-    const result = await signInWithPopup(auth, facebookProvider);
-    return result;
-  }, []);
+  // Facebook linking handled via custom OAuth flow/server
 
   // No server session cookie; client-only auth for MVP
 
   const value = useMemo(
-    () => ({ user, isLoading, signInWithGoogle, signOutUser, linkWithFacebook }),
-    [user, isLoading, signInWithGoogle, signOutUser, linkWithFacebook]
+    () => ({ user, isLoading, signInWithGoogle, signOutUser }),
+    [user, isLoading, signInWithGoogle, signOutUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
