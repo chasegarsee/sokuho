@@ -34,6 +34,14 @@ export const ping = functions.https.onRequest((_req, res) => {
 export const fbAuthStart = functions.https.onRequest(async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
     const authz = req.headers.authorization || "";
     const idToken = authz.startsWith("Bearer ") ? authz.slice(7) : null;
     if (!idToken) return res.status(401).json({ error: "Missing Authorization" });
@@ -44,7 +52,7 @@ export const fbAuthStart = functions.https.onRequest(async (req, res) => {
     const { appId } = facebookConfig();
     if (!appId) return res.status(500).json({ error: "Facebook app not configured" });
 
-    const callbackUrl = buildCallbackUrl(req);
+    const callbackUrl = "https://fbauthcallback-av6mtu24ja-uc.a.run.app"
     const scopes = (req.query.scopes || "public_profile,email").toString();
     const returnTo = (req.query.return_to || "").toString();
 

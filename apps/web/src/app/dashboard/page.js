@@ -22,7 +22,7 @@ export default function DashboardPage() {
       setError("");
       const auth = getFirebaseAuth();
       const idToken = await auth.currentUser.getIdToken();
-      const resp = await fetch("/fbAuthStart", {
+      const resp = await fetch("https://fbauthstart-av6mtu24ja-uc.a.run.app", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
       });
