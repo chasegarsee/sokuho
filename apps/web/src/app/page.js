@@ -1,6 +1,6 @@
 "use client";
 import { hello } from "@repo/shared";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 function HomeInner() {
   const { user, isLoading, signInWithGoogle, signOutUser, linkWithFacebook } = useAuth();
@@ -37,10 +37,4 @@ function HomeInner() {
   );
 }
 
-export default function Home() {
-  return (
-    <AuthProvider>
-      <HomeInner />
-    </AuthProvider>
-  );
-}
+export default function Home() { return <HomeInner />; }
