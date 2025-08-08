@@ -39,26 +39,7 @@ export function AuthProvider({ children }) {
     return result;
   }, []);
 
-  // Keep a server session cookie in sync for middleware-protected routes
-  useEffect(() => {
-    const sync = async () => {
-      try {
-        if (!user) {
-          await fetch("/api/session", { method: "DELETE" });
-          return;
-        }
-        const token = await user.getIdToken(/* forceRefresh */ true);
-        await fetch("/api/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken: token })
-        });
-      } catch (err) {
-        // noop for MVP
-      }
-    };
-    sync();
-  }, [user]);
+  // No server session cookie; client-only auth for MVP
 
   const value = useMemo(
     () => ({ user, isLoading, signInWithGoogle, signOutUser, linkWithFacebook }),

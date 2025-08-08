@@ -1,17 +1,25 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { getFirebaseAdminAuth } from "@/lib/firebaseAdmin";
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
-export default async function DashboardPage() {
-  const cookie = cookies().get("__session");
-  if (!cookie) redirect("/");
-  const auth = getFirebaseAdminAuth();
-  const decoded = await auth.verifySessionCookie(cookie.value, true);
+export default function DashboardPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace("/");
+    }
+  }, [isLoading, user, router]);
+
+  if (isLoading) return <main className="container"><p>Loading...</p></main>;
+  if (!user) return null;
 
   return (
     <main className="container">
       <h1>Dashboard</h1>
-      <p>UID: {decoded.uid}</p>
+      <p>UID: {user.uid}</p>
     </main>
   );
 }
