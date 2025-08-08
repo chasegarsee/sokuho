@@ -1,20 +1,26 @@
 {
   "name": "sokuho",
-  "private": true,
+  "packageManager": "pnpm@9.12.2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
+    "dev": "turbo run dev --parallel",
     "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "dev:web": "pnpm --filter web dev",
+    "dev:functions": "pnpm --filter @repo/functions dev",
+    "deploy:functions": "firebase deploy --only functions"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
+    "eslint": "^9.32.0",
     "prettier": "^3.6.2",
-    "turbo": "^2.5.5",
-    "typescript": "5.8.3"
+    "turbo": "^2.5.5"
   },
-  "packageManager": "pnpm@9.0.0",
   "engines": {
-    "node": ">=18"
-  }
+    "node": "20"
+  },
+  "private": true
 }
