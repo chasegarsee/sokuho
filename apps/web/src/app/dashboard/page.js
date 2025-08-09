@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [igStatus, setIgStatus] = useState("idle");
   const [igImageUrl, setIgImageUrl] = useState("");
   const [igCaption, setIgCaption] = useState("");
+  const [ttStatus, setTtStatus] = useState("idle");
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -63,6 +64,27 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const connectTikTok = useCallback(async () => {
+    try {
+      setTtStatus("starting");
+      setError("");
+      const auth = getFirebaseAuth();
+      const idToken = await auth.currentUser.getIdToken();
+      const returnTo = encodeURIComponent(window.location.href);
+      const resp = await fetch(`https://ttauthstart-av6mtu24ja-uc.a.run.app?return_to=${returnTo}`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` } });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(text || "Failed to start TikTok auth");
+      }
+      const { authUrl } = await resp.json();
+      setTtStatus("redirect");
+      window.location.href = authUrl;
+    } catch (e) {
+      setTtStatus("error");
+      setError(e.message || "Failed to connect TikTok");
+    }
+  }, []);
+
   const publishFacebook = useCallback(async () => {
     try {
       setError("");
@@ -104,6 +126,9 @@ export default function DashboardPage() {
       </button>
       <button style={{ marginLeft: 8 }} onClick={connectInstagram} disabled={igStatus === "starting"}>
         {igStatus === "starting" ? "Connecting…" : "Connect Instagram"}
+      </button>
+      <button style={{ marginLeft: 8 }} onClick={connectTikTok} disabled={ttStatus === "starting"}>
+        {ttStatus === "starting" ? "Connecting…" : "Connect TikTok"}
       </button>
       <div style={{ marginTop: 16 }}>
         <button onClick={publishFacebook} className="btn">Publish FB test</button>

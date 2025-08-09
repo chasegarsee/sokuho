@@ -25,6 +25,13 @@ const cfg = () => ({
     appSecret: "0756b0b190661f12fbf9339fe2e91a4e",
     callbackUrl: "https://igauthcallback-av6mtu24ja-uc.a.run.app/",
   },
+  tiktok: {
+    //clientKey: "aws5kdfr5agoqu9x",
+    //clientSecret: "CdJRseBjNxPl5lyQjHze0UASxhx8DI7Q",
+    clientKey: "sbawu7c2yfk8mr67ze",
+    clientSecret: "KyzKUckbit3EAiwNN5pQjpTBZoJOmQog",
+    callbackUrl: "https://ttauthcallback-av6mtu24ja-uc.a.run.app/",
+  },
 });
 
 const cors = (res) => { 
@@ -437,6 +444,170 @@ export const igPublish = functions.https.onRequest(
     } catch (e) {
       console.error("igPublish", e);
       res.status(500).json({ error: "Internal error" });
+    }
+  }
+);
+
+// ===== TikTok (Login Kit): start/callback =====
+
+// TikTok Login Kit OAuth
+const TT_AUTH_URL = "https://www.tiktok.com/auth/authorize/";
+const TT_TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/";
+const TT_USERINFO_URL = "https://open.tiktokapis.com/v2/user/info/";
+
+export const ttAuthStart = functions.https.onRequest(
+  { invoker: "public" },
+  async (req, res) => {
+    try {
+      cors(res);
+      if (req.method === "OPTIONS") return res.status(204).end();
+
+      const authz = req.headers.authorization || "";
+      const idToken = authz.startsWith("Bearer ") ? authz.slice(7) : "";
+      if (!idToken) return res.status(401).json({ error: "Missing Authorization" });
+      const { uid } = await admin.auth().verifyIdToken(idToken);
+
+      const { clientKey, callbackUrl } = (cfg().tiktok || {});
+      if (!clientKey || !callbackUrl) return res.status(500).json({ error: "TikTok not configured" });
+      if (callbackUrl.includes("?")) {
+        console.warn("[ttAuthStart] callbackUrl contains query string; this is not allowed for TikTok redirect_uri", { callbackUrl });
+        return res.status(500).json({ error: "TikTok callbackUrl must not contain a query string" });
+      }
+
+      const scopes = String(req.query.scopes || "user.info.basic");
+      const returnTo = req.query.return_to ? String(req.query.return_to) : null;
+
+      const state = crypto.randomUUID();
+      await admin.firestore().collection("oauthStates").doc(state).set({
+        uid,
+        provider: "tiktok",
+        returnTo,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // If caller indicates local desktop flow, use a localhost redirect bridge
+      const isLocalDesktop = String(req.query.desktop || "0") === "1";
+      const redirectUri = isLocalDesktop
+        ? "http://localhost:3000/api/tiktok/callback"
+        : callbackUrl;
+
+      const params = new URLSearchParams({
+        client_key: clientKey,
+        scope: scopes,
+        response_type: "code",
+        redirect_uri: redirectUri,
+        state,
+      });
+      const url = `${TT_AUTH_URL}?${params.toString()}`;
+      console.log("[ttAuthStart] built TikTok authorize URL", {
+        clientKeySuffix: clientKey.slice(-4),
+        callbackUrl,
+        redirectUri,
+        state,
+        urlPreview: url.slice(0, 300),
+      });
+      if (req.query.redirect === "1") return res.redirect(url);
+      return res.json({ authUrl: url });
+    } catch (e) {
+      console.error("ttAuthStart", e);
+      return res.status(500).json({ error: "Internal error" });
+    }
+  }
+);
+
+export const ttAuthCallback = functions.https.onRequest(
+  { invoker: "public" },
+  async (req, res) => {
+    try {
+      cors(res);
+      if (req.method === "OPTIONS") return res.status(204).end();
+
+      const code = String(req.query.code || "");
+      const state = String(req.query.state || "");
+      if (!code || !state) return res.status(400).send("Missing code/state");
+
+      const stateRef = admin.firestore().collection("oauthStates").doc(state);
+      const snap = await stateRef.get();
+      if (!snap.exists) return res.status(400).send("Invalid state");
+      const { uid, returnTo } = snap.data();
+
+      const { clientKey, clientSecret, callbackUrl } = (cfg().tiktok || {});
+      if (!clientKey || !clientSecret || !callbackUrl) return res.status(500).send("TikTok not configured");
+
+      const body = new URLSearchParams({
+        client_key: clientKey,
+        client_secret: clientSecret,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: callbackUrl,
+      });
+
+      const tokenResp = await fetch(TT_TOKEN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      });
+      if (!tokenResp.ok) {
+        console.error("TT token", await tokenResp.text());
+        return res.status(400).send("Failed to exchange code");
+      }
+      const tokenData = await tokenResp.json();
+
+      const expiresIn = Number(tokenData.expires_in || 0);
+      const expiresAt = expiresIn ? Date.now() + expiresIn * 1000 : null;
+
+      const integRef = admin
+        .firestore()
+        .collection("users")
+        .doc(uid)
+        .collection("integrations")
+        .doc("tiktok");
+
+      // Try to fetch basic profile info
+      let profile = null;
+      try {
+        const infoResp = await fetch(TT_USERINFO_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${tokenData.access_token}`,
+          },
+          body: JSON.stringify({ fields: ["open_id", "avatar_url", "display_name"] }),
+        });
+        if (infoResp.ok) {
+          const info = await infoResp.json();
+          profile = info?.data && info.data.user ? info.data.user : info?.data || null;
+        }
+      } catch (e) {
+        console.warn("TT userinfo failed", e);
+      }
+
+      await integRef.set(
+        {
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          tokenType: tokenData.token_type || "bearer",
+          expiresIn,
+          expiresAt,
+          openId: tokenData.open_id || null,
+          scope: tokenData.scope || null,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          extra: profile ? { profile } : admin.firestore.FieldValue.delete(),
+        },
+        { merge: true }
+      );
+
+      await stateRef.delete();
+
+      if (returnTo) {
+        const url = new URL(returnTo);
+        url.searchParams.set("tiktok", "connected");
+        return res.redirect(url.toString());
+      }
+      return res.send("TikTok connected. You can close this window.");
+    } catch (e) {
+      console.error("ttAuthCallback", e);
+      return res.status(500).send("Internal error");
     }
   }
 );

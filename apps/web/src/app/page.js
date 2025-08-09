@@ -10,7 +10,12 @@ function HomeInner() {
     const idToken = await auth.currentUser?.getIdToken();
     if (!idToken) return alert("Sign in first");
     const base = process.env.NEXT_PUBLIC_FUNCTIONS_BASE;
-    const startPath = provider === "facebook" ? "/fbAuthStart" : "/igAuthStart";
+    const startPath =
+      provider === "facebook"
+        ? "/fbAuthStart"
+        : provider === "instagram"
+        ? "/igAuthStart"
+        : "/ttAuthStart";
     const returnTo = encodeURIComponent(window.location.origin);
     const resp = await fetch(`${base || ""}${startPath}?return_to=${returnTo}`, {
       method: "POST",
@@ -40,6 +45,7 @@ function HomeInner() {
             <div className="row" style={{ marginTop: 12 }}>
               <button className="btn" onClick={() => startConnect("facebook")}>Connect Facebook</button>
               <button className="btn" style={{ marginLeft: 8 }} onClick={() => startConnect("instagram")}>Connect Instagram</button>
+              <button className="btn" style={{ marginLeft: 8 }} onClick={() => startConnect("tiktok")}>Connect TikTok</button>
             </div>
           </div>
         ) : (

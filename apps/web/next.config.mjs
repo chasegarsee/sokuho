@@ -8,6 +8,7 @@ const nextConfig = {
     return [
       { source: "/fbAuthStart", destination: `https://fbauthstart-av6mtu24ja-uc.a.run.app` },
       { source: "/igAuthStart", destination: `https://igauthstart-av6mtu24ja-uc.a.run.app` },
+      { source: "/ttAuthStart", destination: `https://ttauthstart-av6mtu24ja-uc.a.run.app` },
       { source: "/fbPublish", destination: `${base}/fbPublish` },
       { source: "/igPublish", destination: `${base}/igPublish` },
     ];
