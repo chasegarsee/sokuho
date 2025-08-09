@@ -6,8 +6,8 @@ const nextConfig = {
     const base = process.env.NEXT_PUBLIC_FUNCTIONS_BASE;
     if (!base) return [];
     return [
-      { source: "/fbAuthStart", destination: `${base}/fbAuthStart` },
-      { source: "/igAuthStart", destination: `${base}/igAuthStart` },
+      { source: "/fbAuthStart", destination: `https://fbauthstart-av6mtu24ja-uc.a.run.app` },
+      { source: "/igAuthStart", destination: `https://igauthstart-av6mtu24ja-uc.a.run.app` },
       { source: "/fbPublish", destination: `${base}/fbPublish` },
       { source: "/igPublish", destination: `${base}/igPublish` },
     ];
