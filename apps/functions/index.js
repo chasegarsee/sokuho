@@ -12,24 +12,20 @@ const FB_GRAPH = (pathAndQuery) => `https://graph.facebook.com/${FB_OAUTH_VER}/$
 // Hardcoded webhook verify token (for Meta Webhooks validation)
 const META_VERIFY_TOKEN = "DEV_VERIFY_TOKEN_CHANGE_ME";
 
-// ⚠️ Set these via: firebase functions:config:set facebook.app_id="..." facebook.app_secret="..." facebook.callback_url="..." instagram.app_id="..." instagram.app_secret="..." instagram.callback_url="..."
-const cfg = () => {
-  const c = functions.config();
-  const pick = (obj, path) => path.split(".").reduce((o, k) => (o ? o[k] : undefined), obj);
-  const read = (ns, key) => pick(c, `${ns}.${key}`);
-  return {
-    facebook: {
-      appId: read("facebook", "1021127246600237"),
-      appSecret: read("facebook", "0756b0b190661f12fbf9339fe2e91a4e"),
-      callbackUrl: read("facebook", "https://fbauthcallback-av6mtu24ja-uc.a.run.app"),
-    },
-    instagram: {
-      appId: read("instagram", "1021127246600237"),
-      appSecret: read("instagram", "0756b0b190661f12fbf9339fe2e91a4e"),
-      callbackUrl: read("instagram", "https://igauthcallback-av6mtu24ja-uc.a.run.app"),
-    },
-  };
-};
+// TEMP hardcoded credentials to unblock testing. Replace with your actual values.
+// Later switch back to functions config.
+const cfg = () => ({
+  facebook: {
+    appId: "1021127246600237",
+    appSecret: "0756b0b190661f12fbf9339fe2e91a4e",
+    callbackUrl: "https://fbauthcallback-av6mtu24ja-uc.a.run.app/",
+  },
+  instagram: {
+    appId: "1021127246600237",
+    appSecret: "0756b0b190661f12fbf9339fe2e91a4e",
+    callbackUrl: "https://igauthcallback-av6mtu24ja-uc.a.run.app/",
+  },
+});
 
 const cors = (res) => { 
   res.set("Access-Control-Allow-Origin", "*");
@@ -64,7 +60,10 @@ export const fbAuthStart = functions.https.onRequest(
 
     const { uid } = await admin.auth().verifyIdToken(idToken);
 
-    const scopes = String(req.query.scopes || "public_profile,email");
+    const scopes = String(
+      req.query.scopes ||
+        "public_profile,email,pages_show_list,pages_read_engagement,pages_manage_posts"
+    );
     const returnTo = req.query.return_to ? String(req.query.return_to) : null;
 
     const state = crypto.randomUUID();

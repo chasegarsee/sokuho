@@ -27,7 +27,8 @@ export default function DashboardPage() {
       setError("");
       const auth = getFirebaseAuth();
       const idToken = await auth.currentUser.getIdToken();
-      const resp = await fetch(`https://fbauthstart-av6mtu24ja-uc.a.run.app`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` } });
+      const returnTo = encodeURIComponent(window.location.href);
+      const resp = await fetch(`https://fbauthstart-av6mtu24ja-uc.a.run.app?return_to=${returnTo}` , { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` } });
       if (!resp.ok) {
         const text = await resp.text();
         throw new Error(text || "Failed to start FB auth");
@@ -39,7 +40,7 @@ export default function DashboardPage() {
       setFbStatus("error");
       setError(e.message || "Failed to connect Facebook");
     }
-  }, [base]);
+  }, []);
 
   const connectInstagram = useCallback(async () => {
     try {
@@ -47,7 +48,8 @@ export default function DashboardPage() {
       setError("");
       const auth = getFirebaseAuth();
       const idToken = await auth.currentUser.getIdToken();
-      const resp = await fetch(`https://igauthstart-av6mtu24ja-uc.a.run.app`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` } });
+      const returnTo = encodeURIComponent(window.location.href);
+      const resp = await fetch(`https://igauthstart-av6mtu24ja-uc.a.run.app?return_to=${returnTo}`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` } });
       if (!resp.ok) {
         const text = await resp.text();
         throw new Error(text || "Failed to start IG auth");
@@ -59,7 +61,7 @@ export default function DashboardPage() {
       setIgStatus("error");
       setError(e.message || "Failed to connect Instagram");
     }
-  }, [base]);
+  }, []);
 
   const publishFacebook = useCallback(async () => {
     try {
